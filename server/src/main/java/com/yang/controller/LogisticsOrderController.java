@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.yang.service.LogisticsOrderService;
 
+import java.io.IOException;
+
 @RestController
 @RequestMapping("/api/devLogisticsOrder")
 
@@ -28,7 +30,7 @@ public class LogisticsOrderController {
      * @return 新增成功后的物流订单
      */
     @PostMapping("/addPlaceOrder")
-    public Result<LogisticsOrderVO> addLogisticsOrder(@Valid @RequestBody LogisticsOrderDTO logisticsOrderDTO) {
+    public Result<LogisticsOrderVO> addLogisticsOrder(@Valid @RequestBody LogisticsOrderDTO logisticsOrderDTO) throws IOException {
         LogisticsOrderVO logisticsOrderVO = logisticsOrderService.addLogisticsOrder(logisticsOrderDTO);
         return Result.success(logisticsOrderVO);
     }

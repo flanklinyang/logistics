@@ -39,8 +39,6 @@
             <if test="weight != null">weight,</if>
             <if test="merchantNumber != null and merchantNumber != ''">merchant_number,</if>
             <if test="pdfUrl != null and pdfUrl != ''">pdf_url,</if>
-            <if test="createTime != null">create_time,</if>
-            <if test="updateTime != null">update_time,</if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="userSign != null and userSign != ''">#{userSign},</if>
@@ -76,8 +74,6 @@
             <if test="weight != null">#{weight},</if>
             <if test="merchantNumber != null and merchantNumber != ''">#{merchantNumber},</if>
             <if test="pdfUrl != null and pdfUrl != ''">#{pdfUrl},</if>
-            <if test="createTime != null">#{createTime},</if>
-            <if test="updateTime != null">#{updateTime},</if>
         </trim>
     </insert>
 
