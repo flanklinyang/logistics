@@ -1,6 +1,9 @@
 package com.yang.handler;
 
+import com.yang.exception.OrderNumberDuplicateKeyException;
 import com.yang.result.Result;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -8,9 +11,10 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
     /**
-     * 处理数据校验异常（例如 @NotBlank、@Length 等注解校验失败时抛出的异常）
+     * 处理数据校验异常（ @NotBlank、@Length 等注解校验失败时抛出的异常）
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public Result<String> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
@@ -19,9 +23,18 @@ public class GlobalExceptionHandler {
         // 获取第一个错误信息（也可以收集所有错误信息）
         FieldError fieldError = bindingResult.getFieldError();
         String errorMsg = fieldError != null ? fieldError.getDefaultMessage() : "参数校验失败";
-
         // 使用项目中定义的 Result 统一返回格式
         return Result.error(errorMsg);
+    }
+
+    /**
+     * 校验订单号是否重复
+     *
+     */
+    @ExceptionHandler(OrderNumberDuplicateKeyException.class)
+    public Result<String> handleDuplicateKeyException(OrderNumberDuplicateKeyException e) {
+        String message = e.getMessage();
+        return Result.error(message);
     }
 
     /**
@@ -29,8 +42,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public Result<String> handleException(Exception e) {
-        // 实际项目中可记录日志（e.printStackTrace() 仅为示例）
-        e.printStackTrace();
-        return Result.error("系统异常，请联系管理员");
+        log.info("错误日志:{}",e.getMessage());
+        return Result.error(e.getMessage());
     }
 }

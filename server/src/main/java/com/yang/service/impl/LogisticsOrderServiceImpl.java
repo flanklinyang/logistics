@@ -1,7 +1,6 @@
 package com.yang.service.impl;
 
 import com.itextpdf.barcodes.Barcode128;
-import com.itextpdf.kernel.colors.Color;
 import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.font.PdfFont;
 import com.itextpdf.kernel.font.PdfFontFactory;
@@ -14,32 +13,36 @@ import com.itextpdf.layout.element.Cell;
 import com.itextpdf.layout.element.Image;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
+import com.itextpdf.layout.properties.HorizontalAlignment;
 import com.itextpdf.layout.properties.UnitValue;
 import com.yang.dto.LogisticsOrderDTO;
 import com.yang.dto.LogisticsPackageDTO;
 import com.yang.dto.LogisticsProductDTO;
+import com.yang.dto.PrintPdfsDTO;
 import com.yang.entity.LogisticsOrder;
 import com.yang.entity.LogisticsPackage;
 import com.yang.entity.LogisticsProduct;
+import com.yang.exception.UserSignNullException;
 import com.yang.mapper.LogisticsOrderMapper;
 import com.yang.service.LogisticsOrderService;
 import com.yang.vo.LogisticsOrderVO;
 import com.yang.vo.LogisticsPackageVO;
 import com.yang.vo.LogisticsProductVO;
+import com.yang.exception.OrderNumberDuplicateKeyException;
+import com.yang.vo.PrintPdfsVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.text.SimpleDateFormat;
+
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 @Service
-@Transactional
+@Transactional(rollbackFor = Exception.class)
 @Slf4j
 public class LogisticsOrderServiceImpl implements LogisticsOrderService {
 
@@ -53,10 +56,17 @@ public class LogisticsOrderServiceImpl implements LogisticsOrderService {
      */
     @Override
     public LogisticsOrderVO addLogisticsOrder(LogisticsOrderDTO logisticsOrderDTO) throws IOException {
+
+        Integer count = logisticsOrderMapper.countByOrderNumber(logisticsOrderDTO.getOrderNumber());
+        if (count != null && count > 0) {
+            throw new OrderNumberDuplicateKeyException(logisticsOrderDTO.getOrderNumber());
+        }
+
         LogisticsOrder logisticsOrder = new LogisticsOrder();
         BeanUtils.copyProperties(logisticsOrderDTO,logisticsOrder);
-
-        logisticsOrder.setFreight(BigDecimal.valueOf(10));
+        Random random = new Random();
+        int freight = random.nextInt(10, 100);
+        logisticsOrder.setFreight(BigDecimal.valueOf(freight));
         logisticsOrder.setOrderStatus("派送中");
         logisticsOrder.setPassengerOrder(System.currentTimeMillis() + UUID.randomUUID().toString());
 
@@ -84,6 +94,9 @@ public class LogisticsOrderServiceImpl implements LogisticsOrderService {
 
         String pdfUrl ="D:/JavaProject/logistics/server/src/main/resources/PDF/" + logisticsOrder.getTransferNo() + ".pdf";
         logisticsOrder.setPdfUrl(pdfUrl);
+        Date currentTime = new Date();
+        logisticsOrder.setCreateTime(currentTime);
+        logisticsOrder.setUpdateTime(currentTime);
 
         logisticsOrderMapper.insertLogisticsOrder(logisticsOrder);
         LogisticsOrderVO logisticsOrderVO = new LogisticsOrderVO();
@@ -129,107 +142,153 @@ public class LogisticsOrderServiceImpl implements LogisticsOrderService {
     }
 
     /**
+     * 查询物流订单详情
+     * @param printPdfsDTO 批量打印物流订单DTO
+     * @return 物流订单详情
+     */
+    @Override
+    public PrintPdfsVO printPdf(PrintPdfsDTO printPdfsDTO) {
+        return null;
+    }
+
+    /**
      * 生成物流订单号
      * @return 物流订单号
      */
     private String generateTransferNo() {
-        return System.currentTimeMillis() + UUID.randomUUID().toString();
+        return System.currentTimeMillis() + UUID.randomUUID().toString().split("-")[0];
     }
 
+    /**
+     * 生成pdf
+     * @param logisticsOrderVO 物流单VO
+     */
     private void generatePdf(LogisticsOrderVO logisticsOrderVO) throws IOException {
-
-        String pdfPath = "D:/JavaProject/logistics/server/src/main/resources/PDF/" + logisticsOrderVO.getTransferNo() + ".pdf"; // transferNo为物流单号，从接口响应中获取
+        String pdfPath = "D:/JavaProject/logistics/server/src/main/resources/PDF/" + logisticsOrderVO.getTransferNo() + ".pdf";
         PdfWriter writer = new PdfWriter(pdfPath);
-
         PdfDocument pdfDoc = new PdfDocument(writer);
         Document document = new Document(pdfDoc, PageSize.A4);
 
+        // 中文字体设置
         PdfFont font = PdfFontFactory.createFont("STSong-Light", "UniGB-UCS2-H", PdfFontFactory.EmbeddingStrategy.PREFER_EMBEDDED);
         document.setFont(font);
 
-        document.add(new Paragraph("订单主要信息").setFontSize(12).setBold());
+        document.add(new Paragraph("订单基本信息").setFontSize(14).setBold().setMarginBottom(10));
+        Table baseTable = new Table(UnitValue.createPercentArray(new float[]{25, 25, 25, 25}));
+        baseTable.setWidth(UnitValue.createPercentValue(100));
 
-        Table Ordertable = new Table(UnitValue.createPercentArray(new float[]{20, 30, 20, 30}));
-        Ordertable.setWidth(UnitValue.createPercentValue(100));
+        addKeyValueCell(baseTable, "物流单号", logisticsOrderVO.getTransferNo(), font);
+        addKeyValueCell(baseTable, "运费", String.valueOf(logisticsOrderVO.getFreight()), font);
+        addKeyValueCell(baseTable, "订单状态", logisticsOrderVO.getOrderStatus(), font);
+        addKeyValueCell(baseTable, "系统内部订单号", logisticsOrderVO.getPassengerOrder(), font);
+        addKeyValueCell(baseTable, "件数/重量", logisticsOrderVO.getQuantityWeight(), font);
+        addKeyValueCell(baseTable, "计算重量", String.valueOf(logisticsOrderVO.getWeight()), font);
+        addKeyValueCell(baseTable, "商户编号", logisticsOrderVO.getMerchantNumber(), font);
+        addKeyValueCell(baseTable, "商户号", logisticsOrderVO.getUserSign(), font);
+        addKeyValueCell(baseTable, "商户订单号", logisticsOrderVO.getOrderNumber(), font);
+        addKeyValueCell(baseTable, "下单产品", logisticsOrderVO.getOrderingProducts(), font);
+        addKeyValueCell(baseTable, "发件地", logisticsOrderVO.getFromPlace(), font);
+        addKeyValueCell(baseTable, "目的地", logisticsOrderVO.getDestination(), font);
+        addKeyValueCell(baseTable, "创建时间", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(logisticsOrderVO.getCreateTime()), font);
+        addKeyValueCell(baseTable, "更新时间", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(logisticsOrderVO.getUpdateTime()), font);
+        document.add(baseTable);
 
-        Ordertable.addCell(new Cell().add(new Paragraph("商户号")).setFontSize(10));
-        Ordertable.addCell(new Cell().add(new Paragraph(logisticsOrderVO.getMerchantNumber())).setFontSize(10));
-        Ordertable.addCell(new Cell().add(new Paragraph("物流单号")).setFontSize(10));
-        Ordertable.addCell(new Cell().add(new Paragraph(logisticsOrderVO.getTransferNo())).setFontSize(10));
-        Ordertable.addCell(new Cell().add(new Paragraph("发件人")).setFontSize(10));
-        Ordertable.addCell(new Cell().add(new Paragraph(logisticsOrderVO.getSenderName())).setFontSize(10));
-        Ordertable.addCell(new Cell().add(new Paragraph("发件地址")).setFontSize(10));
-        Ordertable.addCell(new Cell().add(new Paragraph(logisticsOrderVO.getSenderAddress())).setFontSize(10));
-        Ordertable.addCell(new Cell().add(new Paragraph("收件地址")).setFontSize(10));
-        Ordertable.addCell(new Cell().add(new Paragraph(logisticsOrderVO.getRecipientAddress())).setFontSize(10));
-        Ordertable.addCell(new Cell().add(new Paragraph("收件人")).setFontSize(10));
-        Ordertable.addCell(new Cell().add(new Paragraph(logisticsOrderVO.getRecipientName())).setFontSize(10));
-        Ordertable.addCell(new Cell().add(new Paragraph("发件人电话")).setFontSize(10));
-        Ordertable.addCell(new Cell().add(new Paragraph(logisticsOrderVO.getSendMobilePhone())).setFontSize(10));
-        Ordertable.addCell(new Cell().add(new Paragraph("收件人电话")).setFontSize(10));
-        Ordertable.addCell(new Cell().add(new Paragraph(logisticsOrderVO.getRecipientPhone())).setFontSize(10));
-        Ordertable.addCell(new Cell().add(new Paragraph("运费")).setFontSize(10));
-        Ordertable.addCell(new Cell().add(new Paragraph(String.valueOf(logisticsOrderVO.getFreight()))).setFontSize(10));
-        Ordertable.addCell(new Cell().add(new Paragraph("订单状态")).setFontSize(10));
-        Ordertable.addCell(new Cell().add(new Paragraph(logisticsOrderVO.getOrderStatus())).setFontSize(10));
-        document.add(Ordertable);
+        document.add(new Paragraph("\n发件人信息").setFontSize(14).setBold().setMarginTop(15).setMarginBottom(10));
+        Table senderTable = new Table(UnitValue.createPercentArray(new float[]{30, 70}));
+        senderTable.setWidth(UnitValue.createPercentValue(100));
+        addKeyValueCell(senderTable, "发件人姓名", logisticsOrderVO.getSenderName(), font);
+        addKeyValueCell(senderTable, "发件公司", logisticsOrderVO.getSenderCompany(), font);
+        addKeyValueCell(senderTable, "发件地址", logisticsOrderVO.getSenderAddress(), font);
+        addKeyValueCell(senderTable, "发件地址补充", logisticsOrderVO.getSenderAddressOne(), font);
+        addKeyValueCell(senderTable, "发件省/州", logisticsOrderVO.getSenderProvince(), font);
+        addKeyValueCell(senderTable, "发件城市", logisticsOrderVO.getSenderCity(), font);
+        addKeyValueCell(senderTable, "发件邮编", logisticsOrderVO.getSenderPostalCode(), font);
+        addKeyValueCell(senderTable, "发件街道/门牌", logisticsOrderVO.getSenderStreet(), font);
+        addKeyValueCell(senderTable, "发件手机", logisticsOrderVO.getSendMobilePhone(), font);
+        addKeyValueCell(senderTable, "发件电话", logisticsOrderVO.getSendCall(), font);
+        document.add(senderTable);
 
-        document.add(new Paragraph("包裹信息").setFontSize(12).setBold());
-        for(int i=0;i<logisticsOrderVO.getPackageList().size();i++){
-            LogisticsPackageVO logisticsPackageVO = logisticsOrderVO.getPackageList().get(i);
-            document.add(new Paragraph("包裹"+(i+1)).setFontSize(10).setBold());
-            Table packagetable = new Table(UnitValue.createPercentArray(new float[]{20, 30, 20, 30}));
-            packagetable.setWidth(UnitValue.createPercentValue(100));
-            packagetable.addCell(new Cell().add(new Paragraph("包裹描述")).setFontSize(10));
-            packagetable.addCell(new Cell().add(new Paragraph(logisticsPackageVO.getPackageExplain())).setFontSize(10));
-            packagetable.addCell(new Cell().add(new Paragraph("包裹重量")).setFontSize(10));
-            packagetable.addCell(new Cell().add(new Paragraph(String.valueOf(logisticsPackageVO.getPackageHeavy()))).setFontSize(10));
-            packagetable.addCell(new Cell().add(new Paragraph("包裹宽度")).setFontSize(10));
-            packagetable.addCell(new Cell().add(new Paragraph(String.valueOf(logisticsPackageVO.getPackageWidth()))).setFontSize(10));
-            packagetable.addCell(new Cell().add(new Paragraph("包裹高度")).setFontSize(10));
-            packagetable.addCell(new Cell().add(new Paragraph(String.valueOf(logisticsPackageVO.getPackageHigh()))).setFontSize(10));
-            packagetable.addCell(new Cell().add(new Paragraph("包裹长度")).setFontSize(10));
-            packagetable.addCell(new Cell().add(new Paragraph(String.valueOf(logisticsPackageVO.getPackageLength()))).setFontSize(10));
+        document.add(new Paragraph("\n收件人信息").setFontSize(14).setBold().setMarginTop(15).setMarginBottom(10));
+        Table recipientTable = new Table(UnitValue.createPercentArray(new float[]{30, 70}));
+        recipientTable.setWidth(UnitValue.createPercentValue(100));
+        addKeyValueCell(recipientTable, "收件人姓名", logisticsOrderVO.getRecipientName(), font);
+        addKeyValueCell(recipientTable, "收件公司", logisticsOrderVO.getRecipientCompany(), font);
+        addKeyValueCell(recipientTable, "收件地址", logisticsOrderVO.getRecipientAddress(), font);
+        addKeyValueCell(recipientTable, "收件地址补充", logisticsOrderVO.getRecipientAddressOne(), font);
+        addKeyValueCell(recipientTable, "收件省/州", logisticsOrderVO.getRecipientProvince(), font);
+        addKeyValueCell(recipientTable, "收件城市", logisticsOrderVO.getRecipientCity(), font);
+        addKeyValueCell(recipientTable, "收件邮编", logisticsOrderVO.getRecipientPostalCode(), font);
+        addKeyValueCell(recipientTable, "收件街道/门牌", logisticsOrderVO.getRecipientStreet(), font);
+        addKeyValueCell(recipientTable, "收件手机", logisticsOrderVO.getRecipientMobilePhone(), font);
+        addKeyValueCell(recipientTable, "收件电话", logisticsOrderVO.getRecipientPhone(), font);
+        document.add(recipientTable);
 
-            document.add(packagetable);
-            document.add(new Paragraph("包裹"+(i+1)+"商品信息").setFontSize(10).setBold());
-            for(int j=0;j<logisticsPackageVO.getLogisticsProductVOList().size();j++){
-                document.add(new Paragraph("商品"+(j+1)).setFontSize(10).setBold());
-                Table producttable = new Table(UnitValue.createPercentArray(new float[]{20, 30, 20, 30}));
-                producttable.setWidth(UnitValue.createPercentValue(100));
-                producttable.addCell(new Cell().add(new Paragraph("中文名称")).setFontSize(10));
-                producttable.addCell(new Cell().add(new Paragraph(logisticsPackageVO.getLogisticsProductVOList().get(j).getChineseName())).setFontSize(10));
-                producttable.addCell(new Cell().add(new Paragraph("英文名称")).setFontSize(10));
-                producttable.addCell(new Cell().add(new Paragraph(logisticsPackageVO.getLogisticsProductVOList().get(j).getEnglishName())).setFontSize(10));
-                producttable.addCell(new Cell().add(new Paragraph("商品种类")).setFontSize(10));
-                producttable.addCell(new Cell().add(new Paragraph(logisticsPackageVO.getLogisticsProductVOList().get(j).getSpecie())).setFontSize(10));
-                producttable.addCell(new Cell().add(new Paragraph("商品数量")).setFontSize(10));
-                producttable.addCell(new Cell().add(new Paragraph(String.valueOf(logisticsPackageVO.getLogisticsProductVOList().get(j).getNumber()))).setFontSize(10));
-                producttable.addCell(new Cell().add(new Paragraph("商品单价")).setFontSize(10));
-                producttable.addCell(new Cell().add(new Paragraph(String.valueOf(logisticsPackageVO.getLogisticsProductVOList().get(j).getPrice()))).setFontSize(10));
-                producttable.addCell(new Cell().add(new Paragraph("商品金额")).setFontSize(10));
-                producttable.addCell(new Cell().add(new Paragraph(String.valueOf(logisticsPackageVO.getLogisticsProductVOList().get(j).getMoney()))).setFontSize(10));
-                producttable.addCell(new Cell().add(new Paragraph("商品单位")).setFontSize(10));
-                producttable.addCell(new Cell().add(new Paragraph(logisticsPackageVO.getLogisticsProductVOList().get(j).getCurrency())).setFontSize(10));
-                producttable.addCell(new Cell().add(new Paragraph("商品规格")).setFontSize(10));
-                producttable.addCell(new Cell().add(new Paragraph(logisticsPackageVO.getLogisticsProductVOList().get(j).getSpecifications())).setFontSize(10));
-                document.add(producttable);
+        document.add(new Paragraph("\n包裹及商品信息").setFontSize(14).setBold().setMarginTop(15).setMarginBottom(10));
+        int packageIndex = 1;
+        for (LogisticsPackageVO packageVO : logisticsOrderVO.getPackageList()) {
+
+            document.add(new Paragraph("包裹 " + packageIndex).setFontSize(12).setBold().setMarginTop(10));
+            Table packageTable = new Table(UnitValue.createPercentArray(new float[]{30, 70}));
+            packageTable.setWidth(UnitValue.createPercentValue(100));
+            addKeyValueCell(packageTable, "包裹说明", packageVO.getPackageExplain(), font);
+            addKeyValueCell(packageTable, "包裹尺寸",
+                    String.format("长:%.1f, 宽:%.1f, 高:%.1f",
+                            packageVO.getPackageLength(),
+                            packageVO.getPackageWidth(),
+                            packageVO.getPackageHigh()), font);
+            addKeyValueCell(packageTable, "包裹重量", String.valueOf(packageVO.getPackageHeavy()), font);
+            document.add(packageTable);
+
+
+            document.add(new Paragraph("包裹 " + packageIndex + " 包含商品").setFontSize(11).setBold().setMarginTop(5));
+            Table productTable = new Table(UnitValue.createPercentArray(new float[]{15, 15, 10, 10, 15, 15, 20}));
+            productTable.setWidth(UnitValue.createPercentValue(100));
+
+            productTable.addHeaderCell(new Cell().add(new Paragraph("中文品名").setFontSize(10)));
+            productTable.addHeaderCell(new Cell().add(new Paragraph("英文品名").setFontSize(10)));
+            productTable.addHeaderCell(new Cell().add(new Paragraph("币种").setFontSize(10)));
+            productTable.addHeaderCell(new Cell().add(new Paragraph("数量").setFontSize(10)));
+            productTable.addHeaderCell(new Cell().add(new Paragraph("销售金额").setFontSize(10)));
+            productTable.addHeaderCell(new Cell().add(new Paragraph("申报价格").setFontSize(10)));
+            productTable.addHeaderCell(new Cell().add(new Paragraph("规格").setFontSize(10)));
+
+            for (LogisticsProductVO productVO : packageVO.getLogisticsProductVOList()) {
+                productTable.addCell(new Cell().add(new Paragraph(productVO.getChineseName()).setFontSize(10)));
+                productTable.addCell(new Cell().add(new Paragraph(productVO.getEnglishName()).setFontSize(10)));
+                productTable.addCell(new Cell().add(new Paragraph(productVO.getSpecie()).setFontSize(10)));
+                productTable.addCell(new Cell().add(new Paragraph(String.valueOf(productVO.getNumber())).setFontSize(10)));
+                productTable.addCell(new Cell().add(new Paragraph(String.valueOf(productVO.getMoney())).setFontSize(10)));
+                productTable.addCell(new Cell().add(new Paragraph(String.valueOf(productVO.getPrice())).setFontSize(10)));
+                productTable.addCell(new Cell().add(new Paragraph(productVO.getSpecifications()).setFontSize(10)));
             }
+            document.add(productTable);
+            packageIndex++;
         }
 
+        document.add(new Paragraph("\n物流单号条形码").setFontSize(12).setBold().setMarginTop(20).setMarginBottom(10));
         Barcode128 barcode = new Barcode128(pdfDoc);
         barcode.setCode(logisticsOrderVO.getTransferNo());
-        barcode.setSize(12);
+        barcode.setSize(5);
         barcode.setCodeType(Barcode128.CODE128);
-        Color black = new DeviceRgb(0, 0, 0);
-        PdfFormXObject xObject = barcode.createFormXObject(black, null, pdfDoc);
+        barcode.setBaseline(10);
+        barcode.setBarHeight(25);
+        PdfFormXObject xObject = barcode.createFormXObject(new DeviceRgb(0, 0, 0), null, pdfDoc);
         Image image = new Image(xObject);
         image.setWidth(UnitValue.createPercentValue(50));
-        document.add(new Paragraph("物流单号条形码").setFontSize(10).setMarginTop(10));
-        document.add(image.setMarginTop(5));
+        image.setHorizontalAlignment(HorizontalAlignment.CENTER);
+        document.add(image);
 
         document.close();
         pdfDoc.close();
         writer.close();
+    }
+
+    private void addKeyValueCell(Table table, String key, String value, PdfFont font) {
+        table.addCell(new Cell().add(new Paragraph(key).setFontSize(10).setFont(font)));
+        table.addCell(new Cell().add(new Paragraph(value == null ? "" : value).setFontSize(10).setFont(font)));
+    }
+
+    private void generatePdfByTransferNos(List<LogisticsOrderVO> logisticsOrderVOList) throws IOException {
+
     }
 }

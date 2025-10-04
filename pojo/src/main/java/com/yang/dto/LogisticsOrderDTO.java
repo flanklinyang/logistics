@@ -1,9 +1,10 @@
 package com.yang.dto;
 
 import lombok.Data;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.NotBlank;
 import org.hibernate.validator.constraints.Length;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Pattern;
+
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -19,7 +20,7 @@ public class LogisticsOrderDTO {
     private String orderNumber;
 
     @NotBlank(message = "下单产品不能为空")
-    @Length(max = 100, message = "下单产品长度不能超过100字符")
+    @Pattern(regexp = "^(特快|普快)$", message = "下单产品必须为'特快'或'普快'")
     private String orderingProducts;
 
     @Length(max = 20, message = "发件手机长度不能超过20字符")

@@ -4,131 +4,122 @@
 <mapper namespace="com.yang.mapper.LogisticsOrderMapper">
 
     <insert id="insertLogisticsOrder" parameterType="com.yang.entity.LogisticsOrder" useGeneratedKeys="true" keyProperty="id">
-        INSERT into logistics_order
-        <trim prefix="(" suffix=")" suffixOverrides=",">
-            <if test="userSign != null and userSign != ''">user_sign,</if>
-            <if test="orderNumber != null and orderNumber != ''">order_number,</if>
-            <if test="orderingProducts != null and orderingProducts != ''">ordering_products,</if>
-            <if test="sendMobilePhone != null">send_mobile_phone,</if>
-            <if test="sendCall != null">send_call,</if>
-            <if test="senderName != null and senderName != ''">sender_name,</if>
-            <if test="senderCompany != null">sender_company,</if>
-            <if test="senderAddress != null and senderAddress != ''">sender_address,</if>
-            <if test="senderAddressOne != null">sender_address_one,</if>
-            <if test="senderProvince != null and senderProvince != ''">sender_province,</if>
-            <if test="senderCity != null and senderCity != ''">sender_city,</if>
-            <if test="senderPostalCode != null and senderPostalCode != ''">sender_postal_code,</if>
-            <if test="senderStreet != null">sender_street,</if>
-            <if test="fromPlace != null and fromPlace != ''">from_place,</if>
-            <if test="destination != null and destination != ''">destination,</if>
-            <if test="recipientName != null and recipientName != ''">recipient_name,</if>
-            <if test="recipientCompany != null">recipient_company,</if>
-            <if test="recipientAddress != null and recipientAddress != ''">recipient_address,</if>
-            <if test="recipientAddressOne != null">recipient_address_one,</if>
-            <if test="recipientProvince != null and recipientProvince != ''">recipient_province,</if>
-            <if test="recipientCity != null and recipientCity != ''">recipient_city,</if>
-            <if test="recipientPostalCode != null and recipientPostalCode != ''">recipient_postal_code,</if>
-            <if test="recipientStreet != null">recipient_street,</if>
-            <if test="recipientPhone != null">recipient_phone,</if>
-            <if test="recipientMobilePhone != null">recipient_mobile_phone,</if>
-            <if test="transferNo != null and transferNo != ''">transfer_no,</if>
-            <if test="freight != null">freight,</if>
-            <if test="orderStatus != null and orderStatus != ''">order_status,</if>
-            <if test="passengerOrder != null and passengerOrder != ''">passenger_order,</if>
-            <if test="quantityWeight != null and quantityWeight != ''">quantity_weight,</if>
-            <if test="weight != null">weight,</if>
-            <if test="merchantNumber != null and merchantNumber != ''">merchant_number,</if>
-            <if test="pdfUrl != null and pdfUrl != ''">pdf_url,</if>
-        </trim>
-        <trim prefix="values (" suffix=")" suffixOverrides=",">
-            <if test="userSign != null and userSign != ''">#{userSign},</if>
-            <if test="orderNumber != null and orderNumber != ''">#{orderNumber},</if>
-            <if test="orderingProducts != null and orderingProducts != ''">#{orderingProducts},</if>
-            <if test="sendMobilePhone != null">#{sendMobilePhone},</if>
-            <if test="sendCall != null">#{sendCall},</if>
-            <if test="senderName != null and senderName != ''">#{senderName},</if>
-            <if test="senderCompany != null">#{senderCompany},</if>
-            <if test="senderAddress != null and senderAddress != ''">#{senderAddress},</if>
-            <if test="senderAddressOne != null">#{senderAddressOne},</if>
-            <if test="senderProvince != null and senderProvince != ''">#{senderProvince},</if>
-            <if test="senderCity != null and senderCity != ''">#{senderCity},</if>
-            <if test="senderPostalCode != null and senderPostalCode != ''">#{senderPostalCode},</if>
-            <if test="senderStreet != null">#{senderStreet},</if>
-            <if test="fromPlace != null and fromPlace != ''">#{fromPlace},</if>
-            <if test="destination != null and destination != ''">#{destination},</if>
-            <if test="recipientName != null and recipientName != ''">#{recipientName},</if>
-            <if test="recipientCompany != null">#{recipientCompany},</if>
-            <if test="recipientAddress != null and recipientAddress != ''">#{recipientAddress},</if>
-            <if test="recipientAddressOne != null">#{recipientAddressOne},</if>
-            <if test="recipientProvince != null and recipientProvince != ''">#{recipientProvince},</if>
-            <if test="recipientCity != null and recipientCity != ''">#{recipientCity},</if>
-            <if test="recipientPostalCode != null and recipientPostalCode != ''">#{recipientPostalCode},</if>
-            <if test="recipientStreet != null">#{recipientStreet},</if>
-            <if test="recipientPhone != null">#{recipientPhone},</if>
-            <if test="recipientMobilePhone != null">#{recipientMobilePhone},</if>
-            <if test="transferNo != null and transferNo != ''">#{transferNo},</if>
-            <if test="freight != null">#{freight},</if>
-            <if test="orderStatus != null and orderStatus != ''">#{orderStatus},</if>
-            <if test="passengerOrder != null and passengerOrder != ''">#{passengerOrder},</if>
-            <if test="quantityWeight != null and quantityWeight != ''">#{quantityWeight},</if>
-            <if test="weight != null">#{weight},</if>
-            <if test="merchantNumber != null and merchantNumber != ''">#{merchantNumber},</if>
-            <if test="pdfUrl != null and pdfUrl != ''">#{pdfUrl},</if>
-        </trim>
+        INSERT into logistics_order (
+            user_sign,
+            order_number,
+            ordering_products,
+            send_mobile_phone,
+            send_call,
+            sender_name,
+            sender_company,
+            sender_address,
+            sender_address_one,
+            sender_province,
+            sender_city,
+            sender_postal_code,
+            sender_street,
+            from_place,
+            destination,
+            recipient_name,
+            recipient_company,
+            recipient_address,
+            recipient_address_one,
+            recipient_province,
+            recipient_city,
+            recipient_postal_code,
+            recipient_street,
+            recipient_phone,
+            recipient_mobile_phone,
+            transfer_no,
+            freight,
+            order_status,
+            passenger_order,
+            quantity_weight,
+            weight,
+            merchant_number,
+            pdf_url,
+            create_time,
+            update_time
+        ) values (
+                     #{userSign},
+                     #{orderNumber},
+                     #{orderingProducts},
+                     #{sendMobilePhone},
+                     #{sendCall},
+                     #{senderName},
+                     #{senderCompany},
+                     #{senderAddress},
+                     #{senderAddressOne},
+                     #{senderProvince},
+                     #{senderCity},
+                     #{senderPostalCode},
+                     #{senderStreet},
+                     #{fromPlace},
+                     #{destination},
+                     #{recipientName},
+                     #{recipientCompany},
+                     #{recipientAddress},
+                     #{recipientAddressOne},
+                     #{recipientProvince},
+                     #{recipientCity},
+                     #{recipientPostalCode},
+                     #{recipientStreet},
+                     #{recipientPhone},
+                     #{recipientMobilePhone},
+                     #{transferNo},
+                     #{freight},
+                     #{orderStatus},
+                     #{passengerOrder},
+                     #{quantityWeight},
+                     #{weight},
+                     #{merchantNumber},
+                     #{pdfUrl},
+                     #{createTime},
+                     #{updateTime}
+                 )
     </insert>
 
     <insert id="insertLogisticsPackage" parameterType="com.yang.entity.LogisticsPackage" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO logistics_package
-        <trim prefix="(" suffix=")" suffixOverrides=",">
-            <if test="orderId != null">order_id,</if>
-            <if test="packageExplain != null">package_explain,</if>
-            <if test="packageWidth != null and packageWidth != ''">package_width,</if>
-            <if test="packageHigh != null and packageHigh != ''">package_high,</if>
-            <if test="packageLength != null and packageLength != ''">package_length,</if>
-            <if test="packageHeavy != null and packageHeavy != ''">package_heavy,</if>
-            <if test="createTime != null">create_time,</if>
-            <if test="updateTime != null">update_time,</if>
-        </trim>
-        <trim prefix="VALUES (" suffix=")" suffixOverrides=",">
-            <if test="orderId != null">#{orderId},</if>
-            <if test="packageExplain != null">#{packageExplain},</if>
-            <if test="packageWidth != null and packageWidth != ''">#{packageWidth},</if>
-            <if test="packageHigh != null and packageHigh != ''">#{packageHigh},</if>
-            <if test="packageLength != null and packageLength != ''">#{packageLength},</if>
-            <if test="packageHeavy != null and packageHeavy != ''">#{packageHeavy},</if>
-            <if test="createTime != null">#{createTime},</if>
-            <if test="updateTime != null">#{updateTime},</if>
-        </trim>
+        insert into logistics_package (
+            order_id,
+            package_explain,
+            package_width,
+            package_high,
+            package_length,
+            package_heavy
+        ) values (
+                     #{orderId},
+                     #{packageExplain},
+                     #{packageWidth},
+                     #{packageHigh},
+                     #{packageLength},
+                     #{packageHeavy}
+                 )
     </insert>
 
     <insert id="insertLogisticsProduct" parameterType="com.yang.entity.LogisticsProduct" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO logistics_product
-        <trim prefix="(" suffix=")" suffixOverrides=",">
-            <if test="packageId != null">package_id,</if>
-            <if test="chineseName != null and chineseName != ''">chinese_name,</if>
-            <if test="englishName != null and englishName != ''">english_name,</if>
-            <if test="specie != null and specie != ''">specie,</if>
-            <if test="number != null">number,</if>
-            <if test="money != null">money,</if>
-            <if test="price != null">price,</if>
-            <if test="currency != null and currency != ''">currency,</if>
-            <if test="specifications != null and specifications != ''">specifications,</if>
-            <if test="createTime != null">create_time,</if>
-            <if test="updateTime != null">update_time,</if>
-        </trim>
-        <trim prefix="values (" suffix=")" suffixOverrides=",">
-            <if test="packageId != null">#{packageId},</if>
-            <if test="chineseName != null and chineseName != ''">#{chineseName},</if>
-            <if test="englishName != null and englishName != ''">#{englishName},</if>
-            <if test="specie != null and specie != ''">#{specie},</if>
-            <if test="number != null">#{number},</if>
-            <if test="money != null">#{money},</if>
-            <if test="price != null">#{price},</if>
-            <if test="currency != null and currency != ''">#{currency},</if>
-            <if test="specifications != null and specifications != ''">#{specifications},</if>
-            <if test="createTime != null">#{createTime},</if>
-            <if test="updateTime != null">#{updateTime},</if>
-        </trim>
+        insert into logistics_product (
+            package_id,
+            chinese_name,
+            english_name,
+            specie,
+            number,
+            money,
+            price,
+            currency,
+            specifications
+        ) values (
+                     #{packageId},
+                     #{chineseName},
+                     #{englishName},
+                     #{specie},
+                     #{number},
+                     #{money},
+                     #{price},
+                     #{currency},
+                     #{specifications}
+                 )
     </insert>
+
 
 </mapper>

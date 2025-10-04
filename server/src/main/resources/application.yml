@@ -15,3 +15,7 @@ mybatis:
   type-aliases-package: com.sky.entity
   configuration:
     map-underscore-to-camel-case: true
+
+logging:
+  level:
+    com.yang.mapper: DEBUG

@@ -75,6 +75,10 @@ public class LogisticsOrderVO {
 
     private String destination;
 
+    private Date createTime;
+
+    private Date updateTime;
+
     private List<LogisticsPackageVO> packageList = new ArrayList<>();
 
 

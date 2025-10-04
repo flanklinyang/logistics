@@ -11,7 +11,7 @@ import java.io.Serializable;
 @Data
 public class Result<T> implements Serializable {
 
-    private boolean success; //编码：true成功，false失败
+    private boolean success; //成功标志：true成功，false失败
     private String msg; //错误信息
     private T data; //数据
 
