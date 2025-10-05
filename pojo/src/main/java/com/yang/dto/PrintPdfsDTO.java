@@ -3,6 +3,7 @@ package com.yang.dto;
 import java.util.List;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
 import org.hibernate.validator.constraints.Length;
 
@@ -13,6 +14,6 @@ public class PrintPdfsDTO {
     @Length(max = 50, message = "商户号长度不能超过50字符")
     private String userSign;
 
-    @NotBlank(message = "物流单号不能为空")
+    @NotEmpty(message = "物流单号不能为空")
     private List<String> transferNos;
 }

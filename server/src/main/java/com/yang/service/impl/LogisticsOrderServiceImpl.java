@@ -22,6 +22,7 @@ import com.yang.dto.PrintPdfsDTO;
 import com.yang.entity.LogisticsOrder;
 import com.yang.entity.LogisticsPackage;
 import com.yang.entity.LogisticsProduct;
+import com.yang.exception.RightTransferNosNullException;
 import com.yang.exception.UserSignNullException;
 import com.yang.mapper.LogisticsOrderMapper;
 import com.yang.service.LogisticsOrderService;
@@ -51,6 +52,7 @@ public class LogisticsOrderServiceImpl implements LogisticsOrderService {
 
     /**
      * 新增物流订单
+     *
      * @param logisticsOrderDTO 物流订单DTO
      * @return 新增成功后的物流订单VO
      */
@@ -63,7 +65,7 @@ public class LogisticsOrderServiceImpl implements LogisticsOrderService {
         }
 
         LogisticsOrder logisticsOrder = new LogisticsOrder();
-        BeanUtils.copyProperties(logisticsOrderDTO,logisticsOrder);
+        BeanUtils.copyProperties(logisticsOrderDTO, logisticsOrder);
         Random random = new Random();
         int freight = random.nextInt(10, 100);
         logisticsOrder.setFreight(BigDecimal.valueOf(freight));
@@ -78,7 +80,8 @@ public class LogisticsOrderServiceImpl implements LogisticsOrderService {
                 totalHeavy += productDTO.getNumber() * Double.parseDouble(packageDTO.getPackageHeavy());
             }
         }
-        logisticsOrder.setQuantityWeight(totalQuantity + "件/" + totalHeavy + "kg");
+        String weightStr = String.format("%.2f", totalHeavy);
+        logisticsOrder.setQuantityWeight(totalQuantity + "件/" + weightStr + "kg");
 
         BigDecimal totalWeight = BigDecimal.ZERO;
         for (LogisticsPackageDTO packageDTO : logisticsOrderDTO.getPackageList()) {
@@ -86,13 +89,13 @@ public class LogisticsOrderServiceImpl implements LogisticsOrderService {
         }
         logisticsOrder.setWeight(totalWeight);
 
-        String no=generateTransferNo();
-        log.info("新增物流订单，订单号：{}",no);
+        String no = generateTransferNo();
+        log.info("新增物流订单，订单号：{}", no);
         logisticsOrder.setTransferNo(no);
 
         logisticsOrder.setMerchantNumber(System.currentTimeMillis() + UUID.randomUUID().toString());
 
-        String pdfUrl ="D:/JavaProject/logistics/server/src/main/resources/PDF/" + logisticsOrder.getTransferNo() + ".pdf";
+        String pdfUrl = "D:/JavaProject/logistics/server/src/main/resources/PDF/" + logisticsOrder.getTransferNo() + ".pdf";
         logisticsOrder.setPdfUrl(pdfUrl);
         Date currentTime = new Date();
         logisticsOrder.setCreateTime(currentTime);
@@ -100,19 +103,19 @@ public class LogisticsOrderServiceImpl implements LogisticsOrderService {
 
         logisticsOrderMapper.insertLogisticsOrder(logisticsOrder);
         LogisticsOrderVO logisticsOrderVO = new LogisticsOrderVO();
-        BeanUtils.copyProperties(logisticsOrder,logisticsOrderVO);
+        BeanUtils.copyProperties(logisticsOrder, logisticsOrderVO);
         logisticsOrderVO.setFreight(logisticsOrder.getFreight().doubleValue());
         logisticsOrderVO.setWeight(logisticsOrder.getWeight().doubleValue());
         List<LogisticsPackageVO> logisticsPackageVOList = new ArrayList<>();
         for (LogisticsPackageDTO packageDTO : logisticsOrderDTO.getPackageList()) {
 
             LogisticsPackage logisticsPackage = new LogisticsPackage();
-            BeanUtils.copyProperties(packageDTO,logisticsPackage);
+            BeanUtils.copyProperties(packageDTO, logisticsPackage);
             logisticsPackage.setOrderId(logisticsOrder.getId());
             logisticsOrderMapper.insertLogisticsPackage(logisticsPackage);
 
             LogisticsPackageVO logisticsPackageVO = new LogisticsPackageVO();
-            BeanUtils.copyProperties(logisticsPackage,logisticsPackageVO);
+            BeanUtils.copyProperties(logisticsPackage, logisticsPackageVO);
             logisticsPackageVO.setPackageHeavy(Double.parseDouble(logisticsPackage.getPackageHeavy()));
             logisticsPackageVO.setPackageWidth(Double.parseDouble(logisticsPackage.getPackageWidth()));
             logisticsPackageVO.setPackageHigh(Double.parseDouble(logisticsPackage.getPackageHigh()));
@@ -124,12 +127,12 @@ public class LogisticsOrderServiceImpl implements LogisticsOrderService {
             for (LogisticsProductDTO logisticsProductDTO : packageDTO.getSpecSubList()) {
 
                 LogisticsProduct logisticsProduct = new LogisticsProduct();
-                BeanUtils.copyProperties(logisticsProductDTO,logisticsProduct);
+                BeanUtils.copyProperties(logisticsProductDTO, logisticsProduct);
                 logisticsProduct.setPackageId(logisticsPackage.getId());
                 logisticsOrderMapper.insertLogisticsProduct(logisticsProduct);
 
                 LogisticsProductVO logisticsProductVO = new LogisticsProductVO();
-                BeanUtils.copyProperties(logisticsProduct,logisticsProductVO);
+                BeanUtils.copyProperties(logisticsProduct, logisticsProductVO);
                 logisticsProductVO.setPrice(logisticsProduct.getPrice().doubleValue());
                 logisticsProductVO.setMoney(logisticsProduct.getMoney().doubleValue());
                 logisticsProductVOList.add(logisticsProductVO);
@@ -142,13 +145,87 @@ public class LogisticsOrderServiceImpl implements LogisticsOrderService {
     }
 
     /**
-     * 查询物流订单详情
-     * @param printPdfsDTO 批量打印物流订单DTO
+     * 根据商户号和物流订单号列表打印打印合并后的物流订单pdf
+     *
+     * @param printPdfsDTO 批量打印物流订单pdfDTO
      * @return 物流订单详情
      */
     @Override
-    public PrintPdfsVO printPdf(PrintPdfsDTO printPdfsDTO) {
-        return null;
+    public PrintPdfsVO printPdf(PrintPdfsDTO printPdfsDTO) throws IOException {
+        log.info("printPdfsDTO:{}", printPdfsDTO);
+        PrintPdfsVO printPdfsVO = new PrintPdfsVO();
+        List<LogisticsOrder> logisticsOrderList = logisticsOrderMapper.selectLogisticsOrderByUserSign(printPdfsDTO.getUserSign());
+        log.info("logisticsOrderList:{}", logisticsOrderList);
+        if (logisticsOrderList == null || logisticsOrderList.isEmpty()) {
+            throw new UserSignNullException("商户号" + printPdfsDTO.getUserSign() + "不存在物流订单,请检查商户号是否正确");
+        }
+        List<String> errorTransferNos = new ArrayList<>();
+        List<String> rightTransferNos = new ArrayList<>();
+        for (String transferNo : printPdfsDTO.getTransferNos()) {
+            if (logisticsOrderList.stream().anyMatch(order -> order.getTransferNo().equals(transferNo))) {
+                rightTransferNos.add(transferNo);
+            } else {
+                errorTransferNos.add(transferNo);
+            }
+        }
+        if (rightTransferNos.isEmpty()) {
+            throw new RightTransferNosNullException("输入的所有物流订单号中无有效物流订单号，请检查物流订单号是否正确");
+        }
+        log.info("errorTransferNos:{}", errorTransferNos);
+        printPdfsVO.setErrorTransferNos(errorTransferNos);
+        String pdfPath = "D:/JavaProject/logistics/server/src/main/resources/PDF/" + printPdfsDTO.getUserSign()+System.currentTimeMillis() + ".pdf";
+        printPdfsVO.setPdfUrl(pdfPath);
+        PdfWriter writer = new PdfWriter(pdfPath);
+        PdfDocument pdfDoc = new PdfDocument(writer);
+        Document document = new Document(pdfDoc, PageSize.A4);
+
+        PdfFont font = PdfFontFactory.createFont("STSong-Light", "UniGB-UCS2-H", PdfFontFactory.EmbeddingStrategy.PREFER_EMBEDDED);
+        document.setFont(font);
+
+        log.info("rightTransferNos:{}", rightTransferNos);
+        for (LogisticsOrder logisticsOrder : logisticsOrderList) {
+            if(rightTransferNos.contains(logisticsOrder.getTransferNo())) {
+                document.add(new Paragraph("物流单号："+logisticsOrder.getTransferNo()+"订单基本信息").setFontSize(14).setBold().setMarginBottom(10));
+                Table baseTable = new Table(UnitValue.createPercentArray(new float[]{25, 25, 25, 25}));
+                baseTable.setWidth(UnitValue.createPercentValue(100));
+
+                addKeyValueCell(baseTable, "pdf地址", logisticsOrder.getPdfUrl(), font);
+                addKeyValueCell(baseTable, "运费", String.valueOf(logisticsOrder.getFreight()), font);
+                addKeyValueCell(baseTable, "订单状态", logisticsOrder.getOrderStatus(), font);
+                addKeyValueCell(baseTable, "系统内部订单号", logisticsOrder.getPassengerOrder(), font);
+                addKeyValueCell(baseTable, "件数/重量", logisticsOrder.getQuantityWeight(), font);
+                addKeyValueCell(baseTable, "计算重量", String.valueOf(logisticsOrder.getWeight()), font);
+                addKeyValueCell(baseTable, "商户编号", logisticsOrder.getMerchantNumber(), font);
+                addKeyValueCell(baseTable, "商户号", logisticsOrder.getUserSign(), font);
+                addKeyValueCell(baseTable, "商户订单号", logisticsOrder.getOrderNumber(), font);
+                addKeyValueCell(baseTable, "下单产品", logisticsOrder.getOrderingProducts(), font);
+                addKeyValueCell(baseTable, "发件地", logisticsOrder.getFromPlace(), font);
+                addKeyValueCell(baseTable, "目的地", logisticsOrder.getDestination(), font);
+                addKeyValueCell(baseTable, "创建时间", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(logisticsOrder.getCreateTime()), font);
+                addKeyValueCell(baseTable, "更新时间", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(logisticsOrder.getUpdateTime()), font);
+                document.add(baseTable);
+
+                document.add(new Paragraph("条形码").setFontSize(12).setBold().setMarginTop(20).setMarginBottom(10));
+                Barcode128 barcode = new Barcode128(pdfDoc);
+                barcode.setCode(logisticsOrder.getTransferNo());
+                barcode.setSize(5);
+                barcode.setCodeType(Barcode128.CODE128);
+                barcode.setBaseline(10);
+                barcode.setBarHeight(25);
+                PdfFormXObject xObject = barcode.createFormXObject(new DeviceRgb(0, 0, 0), null, pdfDoc);
+                Image image = new Image(xObject);
+                image.setWidth(UnitValue.createPercentValue(50));
+                image.setHorizontalAlignment(HorizontalAlignment.CENTER);
+                document.add(image);
+
+                document.add(new Paragraph("\n"));
+            }
+        }
+        document.close();
+        pdfDoc.close();
+        writer.close();
+
+        return printPdfsVO;
     }
 
     /**
@@ -160,7 +237,8 @@ public class LogisticsOrderServiceImpl implements LogisticsOrderService {
     }
 
     /**
-     * 生成pdf
+     * 生成合并后的物流订单pdf
+     *
      * @param logisticsOrderVO 物流单VO
      */
     private void generatePdf(LogisticsOrderVO logisticsOrderVO) throws IOException {
@@ -288,7 +366,6 @@ public class LogisticsOrderServiceImpl implements LogisticsOrderService {
         table.addCell(new Cell().add(new Paragraph(value == null ? "" : value).setFontSize(10).setFont(font)));
     }
 
-    private void generatePdfByTransferNos(List<LogisticsOrderVO> logisticsOrderVOList) throws IOException {
 
-    }
+
 }

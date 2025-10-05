@@ -6,6 +6,7 @@ import com.yang.vo.LogisticsOrderVO;
 import com.yang.vo.PrintPdfsVO;
 import jakarta.validation.Valid;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 
 public interface LogisticsOrderService {
@@ -16,5 +17,5 @@ public interface LogisticsOrderService {
      */
      LogisticsOrderVO addLogisticsOrder(LogisticsOrderDTO logisticsOrderDTO) throws IOException;
 
-    PrintPdfsVO printPdf(@Valid PrintPdfsDTO printPdfsDTO);
+    PrintPdfsVO printPdf(@Valid PrintPdfsDTO printPdfsDTO) throws IOException;
 }
