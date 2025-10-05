@@ -1,5 +1,6 @@
 package com.yang.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
@@ -29,6 +30,6 @@ public class LogisticsPackageDTO {
     @Length(max = 20, message = "包裹实重长度不能超过20字符")
     private String packageHeavy;
 
-    @NotEmpty(message = "包裹下至少需包含1个商品")
-    private List<LogisticsProductDTO> specSubList;
+    @NotEmpty(message = "商品明细不能为空")
+    private List<@Valid LogisticsProductDTO> specSubList;
 }

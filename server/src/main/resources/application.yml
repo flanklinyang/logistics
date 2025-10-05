@@ -19,3 +19,5 @@ mybatis:
 logging:
   level:
     com.yang.mapper: DEBUG
+    service: info
+    controller: info

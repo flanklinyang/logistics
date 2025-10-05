@@ -1,5 +1,7 @@
 package com.yang.dto;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.NotBlank;
@@ -101,7 +103,8 @@ public class LogisticsOrderDTO {
     @Length(max = 20, message = "收件手机长度不能超过20字符")
     private String recipientMobilePhone = "";
 
-    private List<LogisticsPackageDTO> packageList;
+    @NotEmpty(message = "包裹不能为空")
+    private List<@Valid LogisticsPackageDTO> packageList;
 
     private String transferNo;
 

@@ -1,6 +1,8 @@
 package com.yang.handler;
 
 import com.yang.exception.OrderNumberDuplicateKeyException;
+import com.yang.exception.RightTransferNosNullException;
+import com.yang.exception.UserSignNullException;
 import com.yang.result.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
@@ -36,6 +38,26 @@ public class GlobalExceptionHandler {
         String message = e.getMessage();
         return Result.error(message);
     }
+
+    /**
+     * 校验商户号是否存在
+     */
+    @ExceptionHandler(UserSignNullException.class)
+    public Result<String> handleUserSignNullException(UserSignNullException e) {
+        String message = e.getMessage();
+        return Result.error(message);
+    }
+
+     /**
+     * 校验物流订单号是否存在
+     */
+    @ExceptionHandler(RightTransferNosNullException.class)
+    public Result<String> handleRightTransferNosNullException(RightTransferNosNullException e) {
+        String message = e.getMessage();
+        return Result.error(message);
+    }
+
+
 
     /**
      * 处理其他未捕获的异常（兜底处理）
